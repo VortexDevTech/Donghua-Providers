@@ -49,6 +49,7 @@ For local plugin testing, you need to grant the app "All Files Access" on newer 
 
 ## License
 
+
 Everything in this repo is released into the public domain. You may use it however you want with no conditions whatsoever
 
 
