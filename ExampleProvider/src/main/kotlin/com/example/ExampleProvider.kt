@@ -1,4 +1,4 @@
-package com.darkdemon
+package com.durgam
 
 import com.lagradost.api.Log
 import com.lagradost.cloudstream3.*
