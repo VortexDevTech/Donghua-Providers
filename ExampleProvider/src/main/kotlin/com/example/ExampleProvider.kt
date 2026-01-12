@@ -1,4 +1,4 @@
-package com.example
+package com.moviezwap
 
 import com.lagradost.api.Log
 import com.lagradost.cloudstream3.*
