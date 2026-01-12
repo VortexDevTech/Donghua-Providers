@@ -1,4 +1,4 @@
-package com.example
+package com.moviezwap
 
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
