@@ -1,0 +1,25 @@
+[
+    {
+        "iconUrl": "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://anichin.club&size=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/arjunaedi07/InPlugin/",
+        "fileSize": 35843,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "Duro92",
+            "CodeSanzz",
+            "Arjuna"
+        ],
+        "tvTypes": [
+            "AnimeMovie",
+            "Anime",
+            "Cartoon"
+        ],
+        "version": 25,
+        "internalName": "Anichin",
+        "description": "Anichin Terbaru",
+        "url": "https://raw.githubusercontent.com/duro92/ExtCloud/builds/AnichinMoe.cs3",
+        "name": "Anichin"
+    },
+]                                  
