@@ -1,9 +1,9 @@
 version = 14
 
 cloudstream {
-    authors     = listOf("JustRelaxable", "keyiflerolsun")
-    language    = "tr"
-    description = "İnatBox cloudstream eklentisidir. Sevdiğiniz yayın platformlarını ve canlı maçları burada bulabilirsiniz."
+    authors = listOf("Barış")
+    language = "tr"
+    description = "Archive.org film ve belgesel eklentisi"
 
     /**
      * Status int as the following:
