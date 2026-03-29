@@ -151,38 +151,78 @@ class Anoboye : MainAPI() {
     // LOAD LINKS (SERVERS)
     // =========================
     override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
 
-        val document = app.get(data).document
+    val document = app.get(data).document
 
-        val servers = document.select("button.server-card")
+    val servers = document.select("button.server-card")
 
-        Log.d("Anoboye", "Servers found: ${servers.size}")
+    Log.d("Anoboye", "Servers found: ${servers.size}")
 
-        servers.forEach { server ->
-            val base64 = server.attr("data-value")
+    servers.forEach { server ->
 
-            if (base64.isNullOrEmpty()) return@forEach
+        val base64 = server.attr("data-value")
+        if (base64.isNullOrEmpty()) return@forEach
 
-            try {
-                val decoded = base64Decode(base64)
-                val doc = Jsoup.parse(decoded)
+        try {
+            val decoded = base64Decode(base64)
+            val doc = Jsoup.parse(decoded)
 
-                val iframe = doc.selectFirst("iframe")?.attr("src") ?: return@forEach
+            val iframe = doc.selectFirst("iframe")?.attr("src") ?: return@forEach
 
-                Log.d("Anoboye", "Extractor URL: $iframe")
+            val fixedUrl = Http(iframe)
 
-                loadExtractor(iframe, subtitleCallback, callback)
+            Log.d("Anoboye", "Raw iframe: $fixedUrl")
 
-            } catch (e: Exception) {
-                Log.d("Anoboye", "Error: ${e.message}")
+            // =========================
+            // DAILYPLAYER → DAILYMOTION
+            // =========================
+            if (fixedUrl.contains("dailyplayer.php")) {
+
+                val id = Regex("""id=([^&]+)""")
+                    .find(fixedUrl)
+                    ?.groupValues?.get(1)
+
+                if (id != null) {
+                    val dmUrl = "https://www.dailymotion.com/embed/video/$id"
+
+                    Log.d("Anoboye", "Dailymotion URL: $dmUrl")
+
+                    loadExtractor(dmUrl, subtitleCallback, callback)
+                }
+
             }
-        }
+            // =========================
+            // DARKPLAYER
+            // =========================
+            else if (fixedUrl.contains("darkplayer.php")) {
 
-        return true
+                Log.d("Anoboye", "DarkPlayer detected")
+
+                val extractor = DarkPlayer()
+                extractor.getUrl(fixedUrl, mainUrl)?.forEach {
+                    callback(it)
+                }
+
+            }
+            // =========================
+            // FALLBACK
+            // =========================
+            else {
+                Log.d("Anoboye", "Fallback extractor")
+
+                loadExtractor(fixedUrl, subtitleCallback, callback)
+            }
+
+        } catch (e: Exception) {
+            Log.d("Anoboye", "Error: ${e.message}")
+        }
     }
+
+    return true
+}
 }
