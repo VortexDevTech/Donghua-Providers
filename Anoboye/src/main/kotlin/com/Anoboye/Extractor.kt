@@ -8,7 +8,7 @@ import com.lagradost.api.Log
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.SubtitleFile
-
+import com.lagradost.cloudstream3.newSubtitleFile
 
 
 open class DarkPlayer : ExtractorApi() {
