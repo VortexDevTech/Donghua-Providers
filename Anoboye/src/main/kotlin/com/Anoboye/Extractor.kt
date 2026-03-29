@@ -5,6 +5,10 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import org.jsoup.Jsoup
 import com.lagradost.api.Log
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.SubtitleFile
+
 
 
 open class DarkPlayer : ExtractorApi() {
