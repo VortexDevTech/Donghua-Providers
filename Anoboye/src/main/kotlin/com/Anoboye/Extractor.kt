@@ -34,7 +34,7 @@ open class DarkPlayer : ExtractorApi() {
             ?.groupValues?.get(1)
             ?.replace("\\/", "/")
 
-        Log.d("DarkPlayer videoUrl: $videoUrl")
+        Log.d("Anoboye", "DarkPlayer videoUrl: $videoUrl")
 
         if (videoUrl != null) {
 
@@ -71,7 +71,7 @@ open class DarkPlayer : ExtractorApi() {
             val label = track.groupValues[2]
 
             if (fileUrl.endsWith(".vtt") || fileUrl.endsWith(".srt")) {
-                Log.d("Subtitle found: $label → $fileUrl")
+                Log.d("Anoboye", "Subtitle found: $label → $fileUrl")
 
                 subtitleCallback.invoke(
                     newSubtitleFile(label, fileUrl)
