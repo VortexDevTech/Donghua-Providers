@@ -38,7 +38,7 @@ open class DarkPlayer : ExtractorApi() {
 
         if (videoUrl != null) {
 
-            if (videoUrl.contains(".m3u8")) {
+            if (videoUrl.contains("action=playlist")) {
                 // HLS stream
                 M3u8Helper.generateM3u8(name, videoUrl, mainUrl).forEach(callback)
             } else {
