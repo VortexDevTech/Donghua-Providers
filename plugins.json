@@ -1,0 +1,25 @@
+[
+    {
+        "iconUrl": "https://i3.wp.com/anoboye.com/wp-content/uploads/2025/05/Anoboye-150x150.jpg",
+        "jarFileSize": 89337,
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/VortexDevTech/Donghua-Providers",
+        "fileSize": 25793,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "VortexDevTech"
+        ],
+        "tvTypes": [
+            "AnimeMovie",
+            "Anime",
+            "Cartoon"
+        ],
+        "version": 3,
+        "internalName": "Anoboye",
+        "jarUrl": "https://raw.githubusercontent.com/VortexDevTech/Donghua-Providers/builds/Anoboye.jar",
+        "description": "Donghua and Anime",
+        "url": "https://raw.githubusercontent.com/VortexDevTech/Donghua-Providers/builds/Anoboye.cs3",
+        "name": "Anoboye"
+    }
+]
