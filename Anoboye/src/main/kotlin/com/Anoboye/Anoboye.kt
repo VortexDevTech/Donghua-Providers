@@ -29,26 +29,37 @@ class Anoboye : MainAPI() {
         request: MainPageRequest
     ): HomePageResponse {
 
-        val url = "$mainUrl/${request.data}/page/$page"
+        val url = if (page == 1) {
+            "$mainUrl/${request.data}"
+        } else {
+            "$mainUrl/${request.data}/page/$page"
+        }
+
         Log.d("Anoboye", "Fetching URL: $url")
 
         val document = app.get(url).document
+
+        Log.d("Anoboye", "Final URL: ${document.location()}")
 
         val articles = document.select("div.listupd article.bs")
 
         Log.d("Anoboye", "Articles found: ${articles.size}")
 
         val elements = articles.mapNotNull { article ->
-            val innerHtml = article.selectFirst("code")?.html() ?: return@mapNotNull null
-            val innerDoc = Jsoup.parse(innerHtml)
-            innerDoc.selectFirst("div.bsx")
+
+            val code = article.selectFirst("code")
+
+            if (code != null) {
+                val innerDoc = Jsoup.parse(code.html())
+                innerDoc.selectFirst("div.bsx")
+            } else {
+                article.selectFirst("div.bsx") ?: article
+            }
         }
 
-        Log.d("Anoboye", "Parsed bsx elements: ${elements.size}")
+        Log.d("Anoboye", "Parsed elements: ${elements.size}")
 
         val home = elements.mapNotNull { it.toSearchResult() }
-
-        Log.d("Anoboye", "Final results: ${home.size}")
 
         return newHomePageResponse(
             list = HomePageList(
@@ -65,15 +76,26 @@ class Anoboye : MainAPI() {
     // =========================
     override suspend fun search(query: String, page: Int): SearchResponseList {
 
-        val url = "$mainUrl/page/$page/?s=$query"
+        val url = if (page == 1) {
+            "$mainUrl/?s=$query"
+        } else {
+            "$mainUrl/page/$page/?s=$query"
+        }
+
         val document = app.get(url).document
 
         val articles = document.select("div.listupd article.bs")
 
         val elements = articles.mapNotNull { article ->
-            val innerHtml = article.selectFirst("code")?.html() ?: return@mapNotNull null
-            val innerDoc = Jsoup.parse(innerHtml)
-            innerDoc.selectFirst("div.bsx")
+
+            val code = article.selectFirst("code")
+
+            if (code != null) {
+                val innerDoc = Jsoup.parse(code.html())
+                innerDoc.selectFirst("div.bsx")
+            } else {
+                article.selectFirst("div.bsx") ?: article
+            }
         }
 
         val results = elements.mapNotNull { it.toSearchResult() }
@@ -117,7 +139,6 @@ class Anoboye : MainAPI() {
 
         return if (isEpisodePage) {
 
-            // EPISODE PAGE
             newMovieLoadResponse(title, url, TvType.Anime, url) {
                 this.posterUrl = poster
                 this.plot = description
@@ -125,7 +146,6 @@ class Anoboye : MainAPI() {
 
         } else {
 
-            // SERIES PAGE
             val episodes = document.select("div.eplister ul li").mapNotNull {
                 val epUrl = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
 
@@ -148,64 +168,59 @@ class Anoboye : MainAPI() {
     }
 
     // =========================
-    // LOAD LINKS (SERVERS)
+    // LOAD LINKS
     // =========================
     override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
 
-    val document = app.get(data).document
-    val servers = document.select("button.server-card")
+        val document = app.get(data).document
+        val servers = document.select("button.server-card")
 
-    Log.d("Anoboye", "Servers found: ${servers.size}")
+        Log.d("Anoboye", "Servers found: ${servers.size}")
 
-    servers.forEach { server ->
+        servers.forEach { server ->
 
-        val base64 = server.attr("data-value")
-        if (base64.isNullOrEmpty()) return@forEach
+            val base64 = server.attr("data-value")
+            if (base64.isNullOrEmpty()) return@forEach
 
-        try {
-            val decoded = base64Decode(base64)
-            val doc = Jsoup.parse(decoded)
+            try {
+                val decoded = base64Decode(base64)
+                val doc = Jsoup.parse(decoded)
 
-            val iframe = doc.selectFirst("iframe")?.attr("src") ?: return@forEach
-            val fixedUrl = Http(iframe)
+                val iframe = doc.selectFirst("iframe")?.attr("src") ?: return@forEach
+                val fixedUrl = Http(iframe)
 
-            Log.d("Anoboye", "Raw URL: $fixedUrl")
+                Log.d("Anoboye", "Raw URL: $fixedUrl")
 
-            // =========================
-            // DAILYPLAYER FIX
-            // =========================
-            val finalUrl = if (fixedUrl.contains("dailyplayer.php")) {
+                val finalUrl = if (fixedUrl.contains("dailyplayer.php")) {
 
-                val id = Regex("""id=([^&]+)""")
-                    .find(fixedUrl)
-                    ?.groupValues?.get(1)
+                    val id = Regex("""id=([^&]+)""")
+                        .find(fixedUrl)
+                        ?.groupValues?.get(1)
 
-                val dmUrl = id?.let {
-                    "https://www.dailymotion.com/embed/video/$it"
+                    val dmUrl = id?.let {
+                        "https://www.dailymotion.com/embed/video/$it"
+                    }
+
+                    Log.d("Anoboye", "Converted: $dmUrl")
+                    dmUrl ?: fixedUrl
+
+                } else {
+                    fixedUrl
                 }
 
-                Log.d("Anoboye", "Converted to Dailymotion: $dmUrl")
-                dmUrl ?: fixedUrl
+                loadExtractor(finalUrl, subtitleCallback, callback)
 
-            } else {
-                fixedUrl
+            } catch (e: Exception) {
+                Log.d("Anoboye", "Error: ${e.message}")
             }
-
-            // =========================
-            // LOAD EXTRACTOR (UNCHANGED)
-            // =========================
-            loadExtractor(finalUrl, subtitleCallback, callback)
-
-        } catch (e: Exception) {
-            Log.d("Anoboye", "Error: ${e.message}")
         }
-    }
 
-    return true
+        return true
+    }
 }
-}
+
