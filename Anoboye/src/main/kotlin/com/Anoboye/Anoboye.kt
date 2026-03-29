@@ -21,22 +21,43 @@ class Anoboye : MainAPI() {
         "movies" to "Movies",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(
+    page: Int,
+    request: MainPageRequest
+): HomePageResponse {
+
     val url = if (page == 1) {
-    "$mainUrl/${request.data}"
-} else {
-    "$mainUrl/${request.data}/page/$page"
-}
+        "$mainUrl/${request.data}"
+    } else {
+        "$mainUrl/${request.data}/page/$page"
+    }
+
     Log.d("Anoboye", "Fetching URL: $url")
 
     val document = app.get(url).document
 
-    val elements = document.select("div.listupd > article")
-    Log.d("Anoboye", "Found articles: ${elements.size}")
+    // STEP 1: get all articles
+    val articles = document.select("div.listupd article.bs")
+
+    Log.d("Anoboye", "Articles found: ${articles.size}")
+
+    // STEP 2: parse inside <code>
+    val elements = articles.mapNotNull { article ->
+        val innerHtml = article.selectFirst("code")?.html()
+        if (innerHtml == null) {
+            Log.d("Anoboye", "No inner HTML found")
+            return@mapNotNull null
+        }
+
+        val innerDoc = org.jsoup.Jsoup.parse(innerHtml)
+        innerDoc.selectFirst("div.bsx")
+    }
+
+    Log.d("Anoboye", "Parsed bsx elements: ${elements.size}")
 
     val home = elements.mapNotNull { it.toSearchResult() }
 
-    Log.d("Anoboye", "Parsed items: ${home.size}")
+    Log.d("Anoboye", "Final results: ${home.size}")
 
     return newHomePageResponse(
         list = HomePageList(
@@ -49,35 +70,20 @@ class Anoboye : MainAPI() {
 }
 
     private fun Element.toSearchResult(): SearchResponse? {
-    val link = this.selectFirst("div.bsx > a")
-    if (link == null) {
-        Log.d("Anoboye", "Link not found")
-        return null
-    }
+   
+        val title = this.selectFirst("div.tt a")?.text()?.trim() ?: return null
+        val href = this.selectFirst("a")?.attr("href") ?: return null
 
-    val title = link.attr("title")
-        .ifEmpty { link.attr("oldtitle") }
+        // Handle lazy loading
+        val poster = this.selectFirst("img")?.let {
+            it.attr("data-src").ifBlank { it.attr("src") }
+        }
 
-    val href = fixUrl(link.attr("href"))
+        return newAnimeSearchResponse(title, href, TvType.Anime) {
+            this.posterUrl = poster
+        }
 
-    Log.d("Anoboye", "Title: $title")
-    Log.d("Anoboye", "Href: $href")
-
-    if (title.isBlank() || href.isBlank()) {
-        Log.d("Anoboye", "Skipping item due to empty title/href")
-        return null
-    }
-
-    val img = link.selectFirst("img")
-    val posterUrl = fixUrlNull(
-        img?.attr("data-src")?.ifEmpty { img.attr("src") }
-    )
-
-    Log.d("Anoboye", "Poster: $posterUrl")
-
-    return newMovieSearchResponse(title, href, TvType.Anime) {
-        this.posterUrl = posterUrl
-    }
+    
 }
 
 
