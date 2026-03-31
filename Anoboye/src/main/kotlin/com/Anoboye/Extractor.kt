@@ -6,16 +6,13 @@ import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.newSubtitleFile
 import com.lagradost.cloudstream3.extractors.Dailymotion
-import com.lagradost.cloudstream3.utils.ExtractorApi
-import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.ExtractorLinkType
-import com.lagradost.cloudstream3.utils.M3u8Helper
-import com.lagradost.cloudstream3.utils.M3u8Helper.Companion.generateM3u8
-import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import java.net.URI
 
-
+// =========================
+// DARK PLAYER
+// =========================
 open class DarkPlayer : ExtractorApi() {
 
     override val name = "DarkPlayer"
@@ -44,7 +41,7 @@ open class DarkPlayer : ExtractorApi() {
 
             if (videoUrl.contains("action=playlist")) {
 
-                generateM3u8(
+                M3u8Helper.generateM3u8(
                     displayName,
                     videoUrl,
                     mainUrl
@@ -59,8 +56,8 @@ open class DarkPlayer : ExtractorApi() {
                         videoUrl,
                         INFER_TYPE
                     ) {
-                        this.referer = referer ?: mainUrl
-                        this.quality = Qualities.Unknown.value
+                        referer = referer ?: mainUrl
+                        quality = Qualities.Unknown.value
                     }
                 )
             }
@@ -82,8 +79,10 @@ open class DarkPlayer : ExtractorApi() {
     }
 }
 
-
-open class CustomDailymotion : Dailymotion() {
+// =========================
+// CUSTOM DAILYMOTION
+// =========================
+class CustomDailymotion : Dailymotion() {
 
     override suspend fun getUrl(
         url: String,
@@ -101,13 +100,13 @@ open class CustomDailymotion : Dailymotion() {
         val metaDataUrl = "$mainUrl/player/metadata/video/$id"
 
         val response = app.get(metaDataUrl, referer = embedUrl).text
-        val meta = Gson().fromJson(response, MetaData::class.java)
+        val meta: MetaData = Gson().fromJson(response, MetaData::class.java)
 
-        meta.qualities?.get("auto")?.forEach { quality ->
+        meta.qualities?.get("auto")?.forEach { quality: Quality ->
             val videoUrl = quality.url
 
             if (!videoUrl.isNullOrEmpty() && videoUrl.contains(".m3u8")) {
-                generateM3u8(
+                M3u8Helper.generateM3u8(
                     displayName,
                     videoUrl,
                     ""
@@ -115,7 +114,8 @@ open class CustomDailymotion : Dailymotion() {
             }
         }
 
-        meta.subtitles?.data?.forEach { (_, subData) ->
+        // ✅ FIXED (no destructuring)
+        meta.subtitles?.data?.values?.forEach { subData ->
             subData.urls.forEach { subUrl ->
                 subtitleCallback.invoke(
                     newSubtitleFile(subData.label, subUrl)
@@ -124,7 +124,9 @@ open class CustomDailymotion : Dailymotion() {
         }
     }
 
-  
+    // =========================
+    // HELPERS
+    // =========================
 
     private val videoIdRegex = "^[kx][a-zA-Z0-9]+$".toRegex()
 
