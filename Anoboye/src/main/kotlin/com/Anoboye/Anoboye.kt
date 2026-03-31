@@ -123,9 +123,10 @@ class Anoboye : MainAPI() {
         val title = document.selectFirst("h1.entry-title")?.text()?.trim() ?: "No Title"
 
         val poster =
-            document.selectFirst("div.tb img")?.let {
+            document.selectFirst("div.bigcover img")?.let {
                 it.attr("data-src").ifBlank { it.attr("src") }
-            } ?: document.selectFirst("meta[property=og:image]")?.attr("content")
+            } ?: document.selectFirst("div.thumb img")?.let {
+                it.attr("data-src").ifBlank { it.attr("src") }
 
         val description = document.selectFirst("div.entry-content")?.text()?.trim()
 
@@ -196,19 +197,8 @@ class Anoboye : MainAPI() {
                 val iframe = doc.selectFirst("iframe")?.attr("src") ?: return@forEach
                 val fixedUrl = Http(iframe)
 
-                val finalUrl =
-                    if (fixedUrl.contains("dailyplayer.php")) {
-
-                        val id = Regex("""id=([^&]+)""").find(fixedUrl)?.groupValues?.get(1)
-
-                        val dmUrl = id?.let { "https://www.dailymotion.com/embed/video/$it" }
-
-                        dmUrl ?: fixedUrl
-                    } else {
-                        fixedUrl
-                    }
-
-                val taggedUrl = "$finalUrl#server=$serverName"
+               
+                val taggedUrl = "$fixedUrl#server=$serverName"
 
                 loadExtractor(taggedUrl, subtitleCallback, callback)
             } catch (e: Exception) {

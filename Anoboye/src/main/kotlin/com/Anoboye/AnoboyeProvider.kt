@@ -8,7 +8,7 @@ import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 class AnoboyeProvider: BasePlugin() {
     override fun load() {
         registerMainAPI(Anoboye())
-        registerExtractorAPI(DarkPlayer())
-        registerExtractorAPI(CustomDailymotion())
+        registerExtractorAPI(PlayerExtractor())
+        
     }
 }

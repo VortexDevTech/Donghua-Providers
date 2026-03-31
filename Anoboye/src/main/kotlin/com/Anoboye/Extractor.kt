@@ -5,15 +5,12 @@ import com.lagradost.api.Log
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.newSubtitleFile
-import com.lagradost.cloudstream3.extractors.Dailymotion
 import com.lagradost.cloudstream3.utils.*
-import org.jsoup.Jsoup
 import java.net.URI
 
+open class PlayerExtractor : ExtractorApi() {
 
-open class DarkPlayer : ExtractorApi() {
-
-    override val name = "DarkPlayer"
+    override val name = "Player"
     override val mainUrl = "https://anoboye.com"
     override val requiresReferer = true
 
@@ -26,9 +23,27 @@ open class DarkPlayer : ExtractorApi() {
 
         val actualUrl = url.substringBefore("#")
         val serverName = url.substringAfter("server=", "").ifBlank { "Unknown" }
-        val displayName = "$serverName $name"
 
-        val res = app.get(actualUrl, referer = referer ?: mainUrl).text
+       
+        if (actualUrl.contains("dailyplayer.php")) {
+            handleDailymotion(actualUrl, serverName, subtitleCallback, callback)
+        } else {
+            handleDarkPlayer(actualUrl, serverName, referer, subtitleCallback, callback)
+        }
+    }
+
+  
+    private suspend fun handleDarkPlayer(
+        url: String,
+        serverName: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+
+        val displayName = "$serverName DarkPlayer"
+
+        val res = app.get(url, referer = referer ?: mainUrl).text
 
         val videoUrl = Regex("""videoUrl\s*:\s*"((?:[^"\\]|\\.)*)"""")
             .find(res)
@@ -61,7 +76,7 @@ open class DarkPlayer : ExtractorApi() {
             }
         }
 
-      
+        
         val trackRegex = Regex(
             """"file"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"label"\s*:\s*"([^"]+)""""
         )
@@ -75,30 +90,25 @@ open class DarkPlayer : ExtractorApi() {
             }
         }
     }
-}
 
-
-open class CustomDailymotion : Dailymotion() {
-
-    override suspend fun getUrl(
+    
+    private suspend fun handleDailymotion(
         url: String,
-        referer: String?,
+        serverName: String,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val actualUrl = url.substringBefore("#")
-        val serverName = url.substringAfter("server=", "").ifBlank { "Unknown" }
         val displayName = "$serverName Dailymotion"
 
-        val embedUrl = getEmbedUrl(actualUrl) ?: return
+        val embedUrl = getEmbedUrl(url) ?: return
         val id = getVideoId(embedUrl) ?: return
-        val metaDataUrl = "$mainUrl/player/metadata/video/$id"
+        val metaDataUrl = "https://www.dailymotion.com/player/metadata/video/$id"
 
         val response = app.get(metaDataUrl, referer = embedUrl).text
         val meta: MetaData = Gson().fromJson(response, MetaData::class.java)
 
-        meta.qualities?.get("auto")?.forEach { quality: Quality ->
+        meta.qualities?.get("auto")?.forEach { quality ->
             val videoUrl = quality.url
 
             if (!videoUrl.isNullOrEmpty() && videoUrl.contains(".m3u8")) {
@@ -110,7 +120,6 @@ open class CustomDailymotion : Dailymotion() {
             }
         }
 
-      
         meta.subtitles?.data?.values?.forEach { subData ->
             subData.urls.forEach { subUrl ->
                 subtitleCallback.invoke(
@@ -120,7 +129,7 @@ open class CustomDailymotion : Dailymotion() {
         }
     }
 
-  
+   
 
     private val videoIdRegex = "^[kx][a-zA-Z0-9]+$".toRegex()
 
@@ -138,10 +147,6 @@ open class CustomDailymotion : Dailymotion() {
         val id = path.substringAfter("/video/")
         return if (id.matches(videoIdRegex)) id else null
     }
-
-    // =========================
-    // DATA MODELS
-    // =========================
 
     data class MetaData(
         val qualities: Map<String, List<Quality>>?,
@@ -163,7 +168,6 @@ open class CustomDailymotion : Dailymotion() {
         val urls: List<String>
     )
 }
-
 
 fun Http(url: String): String {
     return if (url.startsWith("//")) {
