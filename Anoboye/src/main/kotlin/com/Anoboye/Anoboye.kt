@@ -116,7 +116,7 @@ class Anoboye : MainAPI() {
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             posterUrl = poster
 
-            addDubStatus(null, episode != null, null, episode)
+            addDubStatus(false, episode != null, null, episode)
 
         }
     }
