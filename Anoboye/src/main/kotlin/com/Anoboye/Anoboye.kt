@@ -22,9 +22,7 @@ class Anoboye : MainAPI() {
             "movies" to "Movies",
         )
 
-    // =========================
-    // MAIN PAGE
-    // =========================
+   
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
 
         val url =
@@ -34,15 +32,15 @@ class Anoboye : MainAPI() {
                 "$mainUrl/${request.data}/page/$page"
             }
 
-        Log.d("Anoboye", "Fetching URL: $url")
+       
 
         val document = app.get(url).document
 
-        Log.d("Anoboye", "Final URL: ${document.location()}")
+      
 
         val articles = document.select("div.listupd article.bs")
 
-        Log.d("Anoboye", "Articles found: ${articles.size}")
+       
 
         val elements =
             articles.mapNotNull { article ->
@@ -56,7 +54,7 @@ class Anoboye : MainAPI() {
                 }
             }
 
-        Log.d("Anoboye", "Parsed elements: ${elements.size}")
+       
 
         val home = elements.mapNotNull { it.toSearchResult() }
 
@@ -66,9 +64,7 @@ class Anoboye : MainAPI() {
         )
     }
 
-    // =========================
-    // SEARCH
-    // =========================
+  
     override suspend fun search(query: String, page: Int): SearchResponseList {
 
         val url =
@@ -99,9 +95,7 @@ class Anoboye : MainAPI() {
         return results.toNewSearchResponseList()
     }
 
-    // =========================
-    // SEARCH RESULT PARSER
-    // =========================
+    
     private fun Element.toSearchResult(): SearchResponse? {
 
         val title = this.selectFirst("div.tt")?.text()?.trim() ?: return null
@@ -121,9 +115,7 @@ class Anoboye : MainAPI() {
         }
     }
 
-    // =========================
-    // LOAD (Series + Episode)
-    // =========================
+  
     override suspend fun load(url: String): LoadResponse {
 
         val document = app.get(url).document
@@ -167,9 +159,7 @@ class Anoboye : MainAPI() {
         }
     }
 
-    // =========================
-    // LOAD LINKS
-    // =========================
+   
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -186,7 +176,7 @@ class Anoboye : MainAPI() {
             val base64 = server.attr("data-value")
             if (base64.isNullOrEmpty()) return@forEach
 
-            // 🔥 CLEAN SERVER NAME
+           
             var serverName =
                 server.attr("data-hostname").ifBlank {
                     server.selectFirst(".server-name")?.text() ?: "Unknown"

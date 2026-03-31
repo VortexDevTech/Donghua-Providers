@@ -10,9 +10,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import java.net.URI
 
-// =========================
-// DARK PLAYER
-// =========================
+
 open class DarkPlayer : ExtractorApi() {
 
     override val name = "DarkPlayer"
@@ -63,7 +61,7 @@ open class DarkPlayer : ExtractorApi() {
             }
         }
 
-        // 🔹 Subtitles
+      
         val trackRegex = Regex(
             """"file"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"label"\s*:\s*"([^"]+)""""
         )
@@ -79,10 +77,8 @@ open class DarkPlayer : ExtractorApi() {
     }
 }
 
-// =========================
-// CUSTOM DAILYMOTION
-// =========================
-class CustomDailymotion : Dailymotion() {
+
+open class CustomDailymotion : Dailymotion() {
 
     override suspend fun getUrl(
         url: String,
@@ -114,7 +110,7 @@ class CustomDailymotion : Dailymotion() {
             }
         }
 
-        // ✅ FIXED (no destructuring)
+      
         meta.subtitles?.data?.values?.forEach { subData ->
             subData.urls.forEach { subUrl ->
                 subtitleCallback.invoke(
@@ -124,9 +120,7 @@ class CustomDailymotion : Dailymotion() {
         }
     }
 
-    // =========================
-    // HELPERS
-    // =========================
+  
 
     private val videoIdRegex = "^[kx][a-zA-Z0-9]+$".toRegex()
 
@@ -170,9 +164,7 @@ class CustomDailymotion : Dailymotion() {
     )
 }
 
-// =========================
-// HELPER
-// =========================
+
 fun Http(url: String): String {
     return if (url.startsWith("//")) {
         "https:$url"
