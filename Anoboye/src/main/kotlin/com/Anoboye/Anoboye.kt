@@ -171,56 +171,63 @@ class Anoboye : MainAPI() {
     // LOAD LINKS
     // =========================
     override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
 
-        val document = app.get(data).document
-        val servers = document.select("button.server-card")
+    val document = app.get(data).document
+    val servers = document.select("button.server-card")
 
-        Log.d("Anoboye", "Servers found: ${servers.size}")
+    Log.d("Anoboye", "Servers found: ${servers.size}")
 
-        servers.forEach { server ->
+    servers.forEach { server ->
 
-            val base64 = server.attr("data-value")
-            if (base64.isNullOrEmpty()) return@forEach
+        val base64 = server.attr("data-value")
+        if (base64.isNullOrEmpty()) return@forEach
 
-            try {
-                val decoded = base64Decode(base64)
-                val doc = Jsoup.parse(decoded)
+        // 🔥 BEST SOURCE OF NAME
+        val serverName = server.attr("data-hostname")
+            .ifBlank { server.selectFirst(".server-name")?.text() ?: "Unknown" }
 
-                val iframe = doc.selectFirst("iframe")?.attr("src") ?: return@forEach
-                val fixedUrl = Http(iframe)
+        try {
+            val decoded = base64Decode(base64)
+            val doc = Jsoup.parse(decoded)
 
-                Log.d("Anoboye", "Raw URL: $fixedUrl")
+            val iframe = doc.selectFirst("iframe")?.attr("src") ?: return@forEach
+            val fixedUrl = Http(iframe)
 
-                val finalUrl = if (fixedUrl.contains("dailyplayer.php")) {
+            Log.d("Anoboye", "Server: $serverName")
+            Log.d("Anoboye", "Raw URL: $fixedUrl")
 
-                    val id = Regex("""id=([^&]+)""")
-                        .find(fixedUrl)
-                        ?.groupValues?.get(1)
+            val finalUrl = if (fixedUrl.contains("dailyplayer.php")) {
 
-                    val dmUrl = id?.let {
-                        "https://www.dailymotion.com/embed/video/$it"
-                    }
+                val id = Regex("""id=([^&]+)""")
+                    .find(fixedUrl)
+                    ?.groupValues?.get(1)
 
-                    Log.d("Anoboye", "Converted: $dmUrl")
-                    dmUrl ?: fixedUrl
-
-                } else {
-                    fixedUrl
+                val dmUrl = id?.let {
+                    "https://www.dailymotion.com/embed/video/$it"
                 }
 
-                loadExtractor(finalUrl, subtitleCallback, callback)
+                dmUrl ?: fixedUrl
 
-            } catch (e: Exception) {
-                Log.d("Anoboye", "Error: ${e.message}")
+            } else {
+                fixedUrl
             }
-        }
 
-        return true
+            // 🔥 PASS SERVER NAME
+            val taggedUrl = "$finalUrl#server=$serverName"
+
+            loadExtractor(taggedUrl, subtitleCallback, callback)
+
+        } catch (e: Exception) {
+            Log.d("Anoboye", "Error: ${e.message}")
+        }
     }
+
+    return true
+}
 }
 

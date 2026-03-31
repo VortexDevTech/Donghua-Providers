@@ -1,14 +1,19 @@
 package com.Anoboye
 
-import com.lagradost.cloudstream3.app
-import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.utils.ExtractorApi
-import org.jsoup.Jsoup
+import com.google.gson.Gson
 import com.lagradost.api.Log
+import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.newSubtitleFile
+import com.lagradost.cloudstream3.extractors.Dailymotion
+import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
-import com.lagradost.cloudstream3.SubtitleFile
-import com.lagradost.cloudstream3.newSubtitleFile
+import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.M3u8Helper.Companion.generateM3u8
+import com.lagradost.cloudstream3.utils.Qualities
+import org.jsoup.Jsoup
+import java.net.URI
 
 
 open class DarkPlayer : ExtractorApi() {
@@ -24,29 +29,33 @@ open class DarkPlayer : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val res = app.get(url, referer = referer ?: mainUrl).text
+        val actualUrl = url.substringBefore("#")
+        val serverName = url.substringAfter("server=", "").ifBlank { "Unknown" }
+        val displayName = "$serverName $name"
 
-        // =========================
-        // 🎯 Extract video URL
-        // =========================
+        val res = app.get(actualUrl, referer = referer ?: mainUrl).text
+
         val videoUrl = Regex("""videoUrl\s*:\s*"((?:[^"\\]|\\.)*)"""")
             .find(res)
             ?.groupValues?.get(1)
             ?.replace("\\/", "/")
 
-        Log.d("Anoboye", "DarkPlayer videoUrl: $videoUrl")
-
         if (videoUrl != null) {
 
             if (videoUrl.contains("action=playlist")) {
-                // HLS stream
-                M3u8Helper.generateM3u8(name, videoUrl, mainUrl).forEach(callback)
+
+                generateM3u8(
+                    displayName,
+                    videoUrl,
+                    mainUrl
+                ).forEach(callback)
+
             } else {
-                // Direct MP4
+
                 callback.invoke(
                     newExtractorLink(
-                        name,
-                        name,
+                        displayName,
+                        displayName,
                         videoUrl,
                         INFER_TYPE
                     ) {
@@ -57,34 +66,110 @@ open class DarkPlayer : ExtractorApi() {
             }
         }
 
-        // =========================
-        // 🎯 Extract subtitles
-        // =========================
+        // 🔹 Subtitles
         val trackRegex = Regex(
             """"file"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"label"\s*:\s*"([^"]+)""""
         )
 
-        val tracks = trackRegex.findAll(res)
-
-        for (track in tracks) {
+        trackRegex.findAll(res).forEach { track ->
             val fileUrl = track.groupValues[1].replace("\\/", "/")
             val label = track.groupValues[2]
 
             if (fileUrl.endsWith(".vtt") || fileUrl.endsWith(".srt")) {
-                Log.d("Anoboye", "Subtitle found: $label → $fileUrl")
-
-                subtitleCallback.invoke(
-                    newSubtitleFile(label, fileUrl)
-                )
+                subtitleCallback.invoke(newSubtitleFile(label, fileUrl))
             }
         }
     }
 }
 
 
+open class CustomDailymotion : Dailymotion() {
+
+    override suspend fun getUrl(
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+
+        val actualUrl = url.substringBefore("#")
+        val serverName = url.substringAfter("server=", "").ifBlank { "Unknown" }
+        val displayName = "$serverName Dailymotion"
+
+        val embedUrl = getEmbedUrl(actualUrl) ?: return
+        val id = getVideoId(embedUrl) ?: return
+        val metaDataUrl = "$mainUrl/player/metadata/video/$id"
+
+        val response = app.get(metaDataUrl, referer = embedUrl).text
+        val meta = Gson().fromJson(response, MetaData::class.java)
+
+        meta.qualities?.get("auto")?.forEach { quality ->
+            val videoUrl = quality.url
+
+            if (!videoUrl.isNullOrEmpty() && videoUrl.contains(".m3u8")) {
+                generateM3u8(
+                    displayName,
+                    videoUrl,
+                    ""
+                ).forEach(callback)
+            }
+        }
+
+        meta.subtitles?.data?.forEach { (_, subData) ->
+            subData.urls.forEach { subUrl ->
+                subtitleCallback.invoke(
+                    newSubtitleFile(subData.label, subUrl)
+                )
+            }
+        }
+    }
+
+  
+
+    private val videoIdRegex = "^[kx][a-zA-Z0-9]+$".toRegex()
+
+    private fun getEmbedUrl(url: String): String? {
+        if (url.contains("/embed/") || url.contains("/video/")) return url
+        if (url.contains("geo.dailymotion.com")) {
+            val videoId = url.substringAfter("video=")
+            return "https://www.dailymotion.com/embed/video/$videoId"
+        }
+        return null
+    }
+
+    private fun getVideoId(url: String): String? {
+        val path = URI(url).path
+        val id = path.substringAfter("/video/")
+        return if (id.matches(videoIdRegex)) id else null
+    }
+
+    // =========================
+    // DATA MODELS
+    // =========================
+
+    data class MetaData(
+        val qualities: Map<String, List<Quality>>?,
+        val subtitles: SubtitlesWrapper?
+    )
+
+    data class Quality(
+        val type: String?,
+        val url: String?
+    )
+
+    data class SubtitlesWrapper(
+        val enable: Boolean,
+        val data: Map<String, SubtitleData>?
+    )
+
+    data class SubtitleData(
+        val label: String,
+        val urls: List<String>
+    )
+}
 
 // =========================
-// URL FIX HELPER
+// HELPER
 // =========================
 fun Http(url: String): String {
     return if (url.startsWith("//")) {
