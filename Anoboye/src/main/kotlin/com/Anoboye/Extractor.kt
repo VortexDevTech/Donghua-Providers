@@ -143,8 +143,7 @@ open class PlayerExtractor : ExtractorApi() {
     }
 
     private fun getVideoId(url: String): String? {
-        val path = URI(url).path
-        val id = path.substringAfter("/video/")
+        val id = Regex("""id=([^&]+)""").find(url)?.groupValues?.get(1)
         return if (id.matches(videoIdRegex)) id else null
     }
 
