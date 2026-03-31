@@ -101,7 +101,7 @@ open class PlayerExtractor : ExtractorApi() {
 
         val displayName = "$serverName Dailymotion"
 
-        val id = getVideoId(embedUrl) ?: return
+        val id = getVideoId(url) ?: return
         val embedUrl = getEmbedUrl(id) ?: return
        
         val metaDataUrl = "https://www.dailymotion.com/player/metadata/video/$id"
