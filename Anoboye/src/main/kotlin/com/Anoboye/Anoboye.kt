@@ -122,12 +122,11 @@ class Anoboye : MainAPI() {
 
         val title = document.selectFirst("h1.entry-title")?.text()?.trim() ?: "No Title"
 
-        val poster =
-            document.selectFirst("div.bigcover img")?.let {
-                it.attr("data-src").ifBlank { it.attr("src") }
-            } ?: document.selectFirst("div.thumb img")?.let {
-                it.attr("data-src").ifBlank { it.attr("src") }
-
+        val poster = document.selectFirst("div.bigcover img")?.let {
+                    it.attr("data-src").ifBlank { it.attr("src") }
+                } ?: document.selectFirst("div.thumb img")?.let {
+                    it.attr("data-src").ifBlank { it.attr("src") }
+                }
         val description = document.selectFirst("div.entry-content")?.text()?.trim()
 
         val isEpisodePage = document.selectFirst("div.player-embed iframe") != null
