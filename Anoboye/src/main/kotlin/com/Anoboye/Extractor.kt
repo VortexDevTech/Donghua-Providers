@@ -101,8 +101,9 @@ open class PlayerExtractor : ExtractorApi() {
 
         val displayName = "$serverName Dailymotion"
 
-        val embedUrl = getEmbedUrl(url) ?: return
         val id = getVideoId(embedUrl) ?: return
+        val embedUrl = getEmbedUrl(id) ?: return
+       
         val metaDataUrl = "https://www.dailymotion.com/player/metadata/video/$id"
 
         val response = app.get(metaDataUrl, referer = embedUrl).text
@@ -133,18 +134,13 @@ open class PlayerExtractor : ExtractorApi() {
 
     private val videoIdRegex = "^[kx][a-zA-Z0-9]+$".toRegex()
 
-    private fun getEmbedUrl(url: String): String? {
-        if (url.contains("/embed/") || url.contains("/video/")) return url
-        if (url.contains("geo.dailymotion.com")) {
-            val videoId = url.substringAfter("video=")
-            return "https://www.dailymotion.com/embed/video/$videoId"
-        }
-        return null
+    private fun getEmbedUrl(id: String): String? {
+        return "https://www.dailymotion.com/embed/video/$id"
     }
 
     private fun getVideoId(url: String): String? {
         val id = Regex("""id=([^&]+)""").find(url)?.groupValues?.get(1)
-        return if (id.matches(videoIdRegex)) id else null
+        return if (id != null && id.matches(videoIdRegex)) id else null
     }
 
     data class MetaData(
