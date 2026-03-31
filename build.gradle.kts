@@ -16,6 +16,7 @@ buildscript {
         // Cloudstream gradle plugin which makes everything work and builds plugins
         classpath("com.github.recloudstream:gradle:-SNAPSHOT")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0")
+        
     }
 }
 
@@ -83,6 +84,8 @@ subprojects {
         // IMPORTANT: Do not bump Jackson above 2.13.1, as newer versions will
         // break compatibility on older Android devices.
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1") // JSON Parser
+
+        implementation("com.google.code.gson:gson:2.10.1")
     }
 }
 

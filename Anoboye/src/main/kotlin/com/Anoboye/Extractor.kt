@@ -56,8 +56,8 @@ open class DarkPlayer : ExtractorApi() {
                         videoUrl,
                         INFER_TYPE
                     ) {
-                        referer = referer ?: mainUrl
-                        quality = Qualities.Unknown.value
+                        this.referer = referer ?: mainUrl
+                        this.quality = Qualities.Unknown.value
                     }
                 )
             }
